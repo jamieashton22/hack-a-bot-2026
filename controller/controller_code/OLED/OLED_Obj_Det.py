@@ -1,45 +1,36 @@
 # Stan
 # OLED output for when an object is detected
-
-from luma.core.interface.serial import i2c
-from luma.oled.device import ssd1306
-from luma.core.render import canvas
-from PIL import ImageFont
+from machine import Pin, I2C
+import ssd1306
 
 # Setup display (I2C address 0x3C)
-serial = i2c(port=1, address=0x3C)
-device = ssd1306(serial, width=128, height=64)
+i2c = I2C(0, scl=Pin(1), sda=Pin(0))  # Adjust pins to match your wiring
+display = ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3C)
 
 bObj_Detected = False
 
 if bObj_Detected == True:
-    # Draw shapes
-    with canvas(device) as draw:
-        # id: 0 - text at (0, 0)
-        draw.text((0,  0),  "OBJECT DETECTED", fill="white")
-        # id: 1 - text at (6, 8)
-        draw.text((6,  8),  "OBJECT DETECTED", fill="white")
-        # id: 2 - text at (12, 16)
-        draw.text((12, 16), "OBJECT DETECTED", fill="white")
-        # id: 3 - text at (18, 24)
-        draw.text((18, 24), "OBJECT DETECTED", fill="white")
-        # id: 4 - text at (24, 32)
-        draw.text((24, 32), "OBJECT DETECTED", fill="white")
-        # id: 5 - text at (30, 40)
-        draw.text((30, 40), "OBJECT DETECTED", fill="white")
-        # id: 6 - text at (36, 48)
-        draw.text((36, 48), "OBJECT DETECTED", fill="white")
-        # id: 7 - text at (42, 56)
-        draw.text((42, 56), "OBJECT DETECTED", fill="white")
+    display.fill(0)  # Clear display
+    # id: 0 - text at (0, 0)
+    display.text("OBJECT DETECTED", 0, 0)
+    # id: 1 - text at (6, 8)
+    display.text("OBJECT DETECTED", 6, 8)
+    # id: 2 - text at (12, 16)
+    display.text("OBJECT DETECTED", 12, 16)
+    # id: 3 - text at (18, 24)
+    display.text("OBJECT DETECTED", 18, 24)
+    # id: 4 - text at (24, 32)
+    display.text("OBJECT DETECTED", 24, 32)
+    # id: 5 - text at (30, 40)
+    display.text("OBJECT DETECTED", 30, 40)
+    # id: 6 - text at (36, 48)
+    display.text("OBJECT DETECTED", 36, 48)
+    # id: 7 - text at (42, 56)
+    display.text("OBJECT DETECTED", 42, 56)
+    display.show()  # Push to display
 
-    # Keep display on
-    input("Press Enter to exit...")
-
-else:    
-    # Draw shapes
-    with canvas(device) as draw:
-        # id: 0 - text at (52, 26)
-        draw.text((52, 28), "IDLE", fill="white")
-
-    # Keep display on
-    input("Press Enter to exit...")
+else:
+    display.fill(0)  # Clear display
+    # id: 0 - text at (52, 28)
+    display.text("IDLE", 52, 28)
+    display.show()  # Push to display
