@@ -3,11 +3,12 @@
 from machine import Pin, I2C
 import ssd1306
 
+
 # Setup display (I2C address 0x3C)
-i2c = I2C(0, scl=Pin(1), sda=Pin(0))  # Adjust pins to match your wiring
+i2c = I2C(0, scl=Pin(1), sda=Pin(0), freq=400000) # Adjust pins to match your wiring
 display = ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3C)
 
-bObj_Detected = False
+bObj_Detected = True
 
 if bObj_Detected == True:
     display.fill(0)  # Clear display
