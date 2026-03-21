@@ -6,8 +6,9 @@ follow controller autonomously
 controlled using joysticks
 controlled with IMU
 
-To Do - Main Tasks
+To Do - Main Tasks 
 CAD design for Hexapod
+
 Hexapod electronic assembly 
 Controller Design
 Controller electronic assembly
