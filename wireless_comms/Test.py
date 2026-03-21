@@ -1,5 +1,5 @@
 # Set to "SENDER" or "RECEIVER"
-MODE = "SENDER"   # <-- change to "RECEIVER" for the other Pico
+MODE = "RECEIVER"   # <-- change to "RECEIVER" for the other Pico
 
 from Radio import Transmitter, Receiver
 import utime
