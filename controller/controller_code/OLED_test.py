@@ -197,11 +197,23 @@ def right_arrow(x, y):
 
     display.show()
 
+def progress_bar(x):
+    display.fill(0)
+    display.text("OBJECT DETECTED", 4, 0, 1)
+    # id: 0 rect 178 - centred at 64, 32
+    display.rect(15, 26, 97, 12, 1)
+    # id: 1 fillRect 179
+    display.fill_rect(16, 27, x - 16, 10, 1)
+    display.show()
+
+
 y = 0
 x = 0
+dist_from_obj = 0
+dist_from_obj_percent = 0
 while True:
     
-    mode = 2
+    mode = 4
     # ====== up arrow ============
     if mode == 0:
         x = 64
@@ -252,4 +264,18 @@ while True:
 
     # ====== Object Detected =====
     if mode == 4:
-        x = 0
+        empty = 16
+        full = 112
+
+        
+        if dist_from_obj == (full - empty):
+            dist_from_obj = 0
+
+        # progress_variable = dist_from_obj_percent * (full - empty)
+
+        progress_variable = dist_from_obj + 16
+        progress_bar(progress_variable)
+        dist_from_obj += 1
+
+
+
