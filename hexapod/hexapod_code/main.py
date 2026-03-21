@@ -1,4 +1,4 @@
-from machine import Pin
+heafrom machine import Pin
 from utime import sleep
 
 pin = Pin("LED", Pin.OUT)
