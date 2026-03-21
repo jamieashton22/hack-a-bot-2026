@@ -12,7 +12,7 @@ while True:
     # print("Raw duration:", duration)
 
 
-    dist = sensor.get_distance_cm()
+    dist = sensor.get_distance_cm_filtered()
 
     if dist == -1:
         print("Out of range")

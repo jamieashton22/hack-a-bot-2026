@@ -5,6 +5,8 @@
 # Echo: pin 18
 # Trig resistors then GP pin, 19
 
+# needs to be powered from +5 V 
+
 from machine import Pin
 import time
 
@@ -54,14 +56,31 @@ class distance_sensor:
         distance = (duration * 0.0343) / 2
         return distance
     
-    # readings averaged over 5 samples
-    def get_distance_cm_avg(self, samples=5):
+    # # readings averaged over 5 samples
+    # def get_distance_cm_avg(self, samples=5):
             
-            readings = []
+    #         readings = []
 
-            for _ in range(samples):
-                d = self.get_distance_cm()
-                if d is not None:
-                    readings.append(d)
+    #         for _ in range(samples):
+    #             d = self.get_distance_cm()
+    #             if d is not None:
+    #                 readings.append(d)
 
-            return sum(readings) / len(readings) if readings else None
+    #         return sum(readings) / len(readings) if readings else None
+    
+
+    # median filtered results 
+    def get_distance_cm_filtered(self, samples=7):
+
+        readings = []
+
+        for _ in range(samples):
+            d = self.get_distance_cm()
+            if d is not None:
+                readings.append(d)
+
+        if not readings:
+            return None
+
+        readings.sort()
+        return readings[len(readings) // 2]
