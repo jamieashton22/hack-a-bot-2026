@@ -1,5 +1,7 @@
 # OLED class 
 
+# FIX: RIGHT IS UP 
+
 from machine import Pin, I2C
 import ssd1306
 
@@ -136,26 +138,71 @@ class OLEDDisplay:
         if distance_cm is None:
             d.text("NO READING", 20, 28, 1)
         else:
-            d.text("OBJECT DETECTED", 15, 6, 1)
+            d.text("OBJECT DETECTED", 5, 6, 1)
             d.text(" Distance:", 20, 16, 1)
             d.text(str(round(distance_cm, 1)) + " cm", 30, 32, 1)
         
         d.show()
 
-    def main_operation(self, distance_cm):
+    def main_operation(self, mode, distance_cm):
 
 
         if  distance_cm > 30 or distance_cm < 5 or distance_cm == None:
 
-            x = 64
-            y_min = 13
-            y_max = 27
 
-            if self.y == 0 - y_max:
-                self.y = 64 + y_min
-            
-            self.up_arrow(x, self.y)
-            self.y -= 1
+            # UP ARROW
+            if mode == "UP":
+                self.x = 64
+                y_min = 13
+                y_max = 27
+
+                if self.y <= 0 - y_max:
+                    self.y = 64 + y_min
+                
+                self.up_arrow(self.x, self.y)
+                self.y -= 16
+
+            # DOWN ARROW 
+
+            elif mode == "DOWN":
+                self.x = 64
+                y_min = 27
+                y_max = 13
+
+                if self.y >= 64 + y_min:
+                    self.y = 0 - y_max
+
+                self.down_arrow(self.x, self.y)
+                self.y += 16
+
+            # LEFT ARROW
+            elif mode == "LEFT":
+                self.y = 32
+                x_min = 13
+                x_max = 33
+
+                if self.x <= 0 - x_max:
+                    self.x = 128 + x_min
+                
+                self.left_arrow(self.x, self.y)
+                self.x -= 20
+
+            # RIGHT ARROW
+            elif mode == "RIGHT":
+                self.y = 32
+                x_min = 33
+                x_max = 14
+
+                if self.x >= 128 + x_min:
+                    self.x = 0 - x_max
+                
+                self.right_arrow(self.x,self.y)
+                self.x += 20
+
+            elif mode == "CENTER":
+                self.display.text("NO OBJECT", 5, 6, 1)
+                self.display.text("DETECTED", 20, 16, 1)
+
 
         else:
             self.show_distance(distance_cm)
