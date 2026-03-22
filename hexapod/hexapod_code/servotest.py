@@ -12,5 +12,14 @@ driver = PCA9685Driver(
 driver.set_pwm_frequency(50)
 
 servo = Servo(driver, 0)
-servo1 = ContinuousServo(driver, 1)
-servo.move_to_angle(90)
+servo1 = Servo(driver, 1)
+servo2 = Servo(driver, 2)
+while True:
+    servo.move_to_angle(20)
+    servo1.move_to_angle(90)
+    servo2.move_to_angle(90)
+    time.sleep(2)
+    servo.move_to_angle(90)
+    servo1.move_to_angle(90)
+    servo2.move_to_angle(90)
+    time.sleep(2)

@@ -45,11 +45,6 @@ class Leg:
         return max(low, min(high, value))
 
     def set_joint_angles(self, a, b, c):
-        """
-        a, b, c are IK angles in degrees.
-        Convert them to servo command angles with offset/sign.
-        """
-
         a_cmd = self.coxa_offset + self.coxa_sign * a
         b_cmd = self.femur_offset + self.femur_sign * b
         c_cmd = self.tibia_offset + self.tibia_sign * c
@@ -57,10 +52,6 @@ class Leg:
         a_cmd = self.clamp(a_cmd, self.coxa_min, self.coxa_max)
         b_cmd = self.clamp(b_cmd, self.femur_min, self.femur_max)
         c_cmd = self.clamp(c_cmd, self.tibia_min, self.tibia_max)
-
-        print(
-            f"CMD angles: coxa={a_cmd:.1f}, femur={b_cmd:.1f}, tibia={c_cmd:.1f}"
-        )
 
         self.coxa.move_to_angle(a_cmd)
         self.femur.move_to_angle(b_cmd)
@@ -115,106 +106,76 @@ class Leg:
         b = math.degrees(theta2)
         c = math.degrees(theta3)
 
-        print(
-            f"IK for foot ({x:.1f}, {y:.1f}, {z:.1f}): "
-            f"theta1={a:.1f}, theta2={b:.1f}, theta3={c:.1f}"
-        )
-
         self.set_joint_angles(a, b, c)
 
-class Hexapod:
 
+class Hexapod:
     def __init__(self, legs):
         self.legs = legs
 
-        # TODO:
-        # define which legs belong to each tripod group
-        # example idea:
-        # tripod A = legs 0, 3, 4
-        # tripod B = legs 1, 2, 5
-        self.phase_offsets = [None] * len(legs)
+        # tripod gait phase offsets
+        self.phase_offsets = [
+            0.0 if i in (0, 2, 4) else 0.5
+            for i in range(len(legs))
+        ]
 
-        # TODO:
-        # store current gait / motion settings
-        self.step_length = 0
-        self.step_height = 0
-        self.ground_z = 0
+        # current gait settings
+        self.step_length = 20
+        self.step_height = 10
+        self.ground_z = -50
         self.walk_period = 1.0
 
+        # stop handling
+        self.stop_requested = False
+        self.is_standing = True
+
+    def _global_phase(self, time_now, period):
+        return (time_now % period) / period
+
+    def _at_cycle_boundary(self, global_phase, tol=0.05):
+        return global_phase < tol or global_phase > (1.0 - tol)
+
+    def request_stop(self):
+        """
+        Request a stop at the end of the current gait cycle.
+        """
+        self.stop_requested = True
+
+    def clear_stop_request(self):
+        self.stop_requested = False
+        self.is_standing = False
+
     def stand(self):
-        """
-        Move all legs to a neutral standing pose.
-
-        Typical steps:
-        1) choose a default foot position for each leg
-        2) send each leg to that position
-        3) make sure body is balanced and symmetric
-        """
-
         for leg in self.legs:
-            # TODO:
-            # choose default standing foot position
-            x = None
-            y = None
-            z = None
-
-            # command leg to that position
-            leg.move_foot(x, y, z)
+            leg.move_foot(leg.home_x, leg.home_y, leg.home_z)
+        self.is_standing = True
 
     def sit(self):
-        """
-        Move robot into a lower resting pose.
-
-        Typical idea:
-        - keep feet roughly under body
-        - reduce body height by changing z
-        """
-
         for leg in self.legs:
-            # TODO:
-            # choose lower foot/body position
-            x = None
-            y = None
-            z = None
-
+            x = leg.home_x
+            y = leg.home_y
+            z = leg.home_z + 20   # less negative = body lower / legs less extended
             leg.move_foot(x, y, z)
+        self.is_standing = False
 
     def walk_forward(self, time_now, step_length=20, step_height=10, ground_z=-50, period=1.0):
-        """
-        Update all legs for forward walking based on current time.
+        self.step_length = step_length
+        self.step_height = step_height
+        self.ground_z = ground_z
+        self.walk_period = period
 
-        Parameters
-        ----------
-        time_now : float
-            Current time in seconds or ticks converted to seconds.
+        global_phase = self._global_phase(time_now, period)
 
-        step_length : float
-            Forward/back reach of each step.
+        # if stop requested, only stop when current cycle reaches boundary
+        if self.stop_requested and self._at_cycle_boundary(global_phase):
+            self.stand()
+            return
 
-        step_height : float
-            Foot lift height during swing phase.
-
-        ground_z : float
-            Nominal ground level relative to body.
-
-        period : float
-            Time for one full gait cycle.
-        """
-
-        # Convert time into repeating phase from 0.0 to 1.0
-        global_phase = (time_now % period) / period
+        self.is_standing = False
 
         for i, leg in enumerate(self.legs):
+            leg_phase = (global_phase + self.phase_offsets[i]) % 1.0
 
-            # Simple tripod gait:
-            # legs 0, 2, 4 in one tripod
-            # legs 1, 3, 5 in the other tripod
-            phase_offset = 0.0 if i in (0, 2, 4) else 0.5
-
-            # Shift phase for this leg and wrap back into [0, 1)
-            leg_phase = (global_phase + phase_offset) % 1.0
-
-            # Ask leg for target foot position
             x, y, z = leg.foot_trajectory(
                 leg_phase,
                 step_length,
@@ -222,47 +183,127 @@ class Hexapod:
                 ground_z
             )
 
-            # Move that leg to the target foot position
             leg.move_foot(x, y, z)
 
     def turn_left(self, time_now, turn_amount=1.0, step_height=10, ground_z=-50, period=1.0):
         """
-        Update all legs for turning left.
+        Simple turning gait:
+        - right legs take a larger forward/back step
+        - left legs take a smaller / reversed step
+        - same tripod timing as walking
 
-        Typical turning idea:
-        - left and right legs use different x/y trajectories
-        - some legs may step slightly inward/outward
-        - body rotates because stance legs push asymmetrically
-
-        This can later reuse the same gait timing as walk_forward(),
-        but with different target foot paths.
+        Assumes leg indices:
+            0,1,2 = right side
+            3,4,5 = left side
         """
+        turn_amount = max(0.0, min(1.0, turn_amount))
 
-        # TODO:
-        # compute global gait phase
-        global_phase = None
+        self.step_height = step_height
+        self.ground_z = ground_z
+        self.walk_period = period
+
+        global_phase = self._global_phase(time_now, period)
+
+        if self.stop_requested and self._at_cycle_boundary(global_phase):
+            self.stand()
+            return
+
+        self.is_standing = False
+
+        base_step = 20
+        outer_step = base_step * (1.0 + turn_amount)
+        inner_step = base_step * (1.0 - turn_amount)
 
         for i, leg in enumerate(self.legs):
+            leg_phase = (global_phase + self.phase_offsets[i]) % 1.0
 
-            # TODO:
-            # apply per-leg phase offset
-            leg_phase = None
+            is_left = (i >= 3)
 
-            # TODO:
-            # generate turning-specific foot target
-            # could depend on whether leg is on left or right side
-            x = None
-            y = None
-            z = None
+            # turning left:
+            # right side pushes more forward/back
+            # left side pushes less, or slightly opposite for tighter turn
+            if is_left:
+                local_step = -0.5 * inner_step
+            else:
+                local_step = outer_step
+
+            x, y, z = leg.foot_trajectory(
+                leg_phase,
+                local_step,
+                step_height,
+                ground_z
+            )
 
             leg.move_foot(x, y, z)
 
-    def stop(self):
+    def update_stopping_gait(self, time_now):
         """
-        Stop walking and hold current or neutral pose.
+        Keep running the last gait until it reaches a safe stop boundary.
+        Use this when stop has been requested.
+        """
+        global_phase = self._global_phase(time_now, self.walk_period)
 
-        Possible strategies:
-        - freeze current foot positions
-        - return smoothly to standing pose
+        if self._at_cycle_boundary(global_phase):
+            self.stand()
+            return
+
+        # continue previous walk settings while stopping
+        self.walk_forward(
+            time_now,
+            step_length=self.step_length,
+            step_height=self.step_height,
+            ground_z=self.ground_z,
+            period=self.walk_period
+        )
+        
+    def turn_right(self, time_now, turn_amount=1.0, step_height=10, ground_z=-50, period=1.0):
         """
-        pass
+        Turning right gait (mirror of turn_left).
+
+        - left legs take bigger forward/back steps
+        - right legs take smaller / reversed steps
+
+        Assumes leg indices:
+            0,1,2 = right side
+            3,4,5 = left side
+        """
+
+        turn_amount = max(0.0, min(1.0, turn_amount))
+
+        self.step_height = step_height
+        self.ground_z = ground_z
+        self.walk_period = period
+
+        global_phase = self._global_phase(time_now, period)
+
+        # allow graceful stop
+        if self.stop_requested and self._at_cycle_boundary(global_phase):
+            self.stand()
+            return
+
+        self.is_standing = False
+
+        base_step = 20
+        outer_step = base_step * (1.0 + turn_amount)
+        inner_step = base_step * (1.0 - turn_amount)
+
+        for i, leg in enumerate(self.legs):
+
+            leg_phase = (global_phase + self.phase_offsets[i]) % 1.0
+
+            is_left = (i >= 3)
+
+            # turning RIGHT → LEFT legs push more
+            if is_left:
+                local_step = outer_step
+            else:
+                local_step = -0.5 * inner_step
+
+            x, y, z = leg.foot_trajectory(
+                leg_phase,
+                local_step,
+                step_height,
+                ground_z
+            )
+
+            leg.move_foot(x, y, z)

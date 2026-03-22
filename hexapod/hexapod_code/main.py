@@ -77,17 +77,22 @@ current_cmd = "S"
 def handle_forward(msg=None):
     global current_cmd
     current_cmd = "F"
-    print("Command: FORWARD")
-
-def handle_stop(msg=None):
-    global current_cmd
-    current_cmd = "S"
-    print("Command: STOP")
+    hexapod.clear_stop_request()
 
 def handle_left(msg=None):
     global current_cmd
     current_cmd = "L"
-    print("Command: LEFT")
+    hexapod.clear_stop_request()
+    
+def handle_turn_right(msg=None):
+    global current_cmd
+    current_cmd = "R"
+    hexapod.clear_stop_request()
+
+def handle_stop(msg=None):
+    global current_cmd
+    current_cmd = "S"
+    hexapod.request_stop()
 
 def unknown_command(msg=None):
     print("Unknown command:", msg)
@@ -95,6 +100,7 @@ def unknown_command(msg=None):
 rx.add_handler("F", handle_forward)
 rx.add_handler("S", handle_stop)
 rx.add_handler("L", handle_left)
+rx.add_handler("R", handle_turn_right)
 rx.set_default_handler(unknown_command)
 
 # Initial neutral pose once
@@ -109,7 +115,10 @@ while True:
 
     rx.listen()
 
-    if current_cmd == "F":
+    if hexapod.stop_requested and not hexapod.is_standing:
+        hexapod.update_stopping_gait(now)
+
+    elif current_cmd == "F":
         hexapod.walk_forward(
             time_now=now,
             step_length=15,
@@ -119,11 +128,25 @@ while True:
         )
 
     elif current_cmd == "L":
-        # only use this once turn_left is actually implemented
-        # hexapod.turn_left(time_now=now, turn_amount=1.0, step_height=8, ground_z=-50, period=2.0)
-        hexapod.stand()
+        hexapod.turn_left(
+            time_now=now,
+            turn_amount=1.0,
+            step_height=8,
+            ground_z=-50,
+            period=2.0
+        )
+    
+    elif current_cmd == "R":
+        hexapod.turn_right(
+            time_now=now,
+            turn_amount=1.0,
+            step_height=8,
+            ground_z=-50,
+            period=2.0
+        )
 
-    elif current_cmd == "S":
-        hexapod.stand()
+    else:
+        if not hexapod.stop_requested:
+            hexapod.stand()
 
     utime.sleep_ms(20)
