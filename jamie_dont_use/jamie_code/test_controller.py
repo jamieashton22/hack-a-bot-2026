@@ -1,0 +1,36 @@
+from Radio import Transmitter, Receiver
+from joystick import Joystick
+from OLED import OLEDDisplay
+import time
+
+
+import utime
+# Fixed 5-byte address for testing
+ADDRESS = b"team6"
+
+tx = Transmitter(tx_address=ADDRESS)
+js = Joystick(x_pin=27, y_pin=26, button_pin=22)
+oled = OLEDDisplay()
+
+prev_direction = None
+
+
+while True:
+
+
+    direction = js.direction()
+    distance()
+    
+    oled.main_operation(direction,distance)
+    time.sleep(0.2)
+
+
+    
+    if direction != prev_direction:
+
+        message = direction.encode()
+        success = tx.send_with_retry(message)
+        print(f"Sent: {message} -> {success}")
+        prev_direction = direction
+
+    utime.sleep(0.01)
