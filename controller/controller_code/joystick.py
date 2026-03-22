@@ -52,7 +52,7 @@ class Joystick:
         if dir_x and dir_y:
             return dir_y + "_" + dir_x
         
-        return dir_x or dir_y or "C"
+        return dir_x or dir_y or "S"
 
         
 
