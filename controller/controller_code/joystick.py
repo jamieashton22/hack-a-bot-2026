@@ -40,19 +40,19 @@ class Joystick:
         dir_y = ""
 
         if dx < -self.deadzone:
-            dir_x = "LEFT"
+            dir_x = "L"
         elif dx > self.deadzone:
-            dir_x = "RIGHT"
+            dir_x = "R"
 
         if dy < -self.deadzone:
-            dir_y = "DOWN"
+            dir_y = "B"
         elif dy > self.deadzone:
-            dir_y = "UP"
+            dir_y = "F"
 
         if dir_x and dir_y:
             return dir_y + "_" + dir_x
         
-        return dir_x or dir_y or "CENTER"
+        return dir_x or dir_y or "C"
 
         
 
