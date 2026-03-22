@@ -54,6 +54,8 @@ class Joystick:
             return dir_y + "_" + dir_x
         
         return dir_x or dir_y or "CENTER"
+    
+
 
         
 
